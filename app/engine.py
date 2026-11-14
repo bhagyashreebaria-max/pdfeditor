@@ -123,19 +123,32 @@ def engine_compose(
             output_doc.close()
             raise EngineError(f"File '{filename}' exceeds {MAX_FILE_BYTES // (1024*1024)} MiB limit.", status_code=413)
 
-        # Handle image input
+        # Handle image input - visual A4 full-page scaling
         lower_name = filename.lower()
         if lower_name.endswith((".png", ".jpg", ".jpeg", ".bmp", ".webp", ".tif", ".tiff")):
             try:
                 img = Image.open(BytesIO(data))
-                img_pdf_bytes = BytesIO()
-                img.convert("RGB").save(img_pdf_bytes, format="PDF")
-                img_doc = fitz.open(stream=img_pdf_bytes.getvalue(), filetype="pdf")
-                output_doc.insert_pdf(img_doc)
-                img_doc.close()
+                img_w, img_h = img.size
+
+                # Standard A4: 595.28 x 841.89 points
+                # Select A4 Landscape if image is landscape, else A4 Portrait
+                if img_w > img_h:
+                    a4_w, a4_h = 841.89, 595.28  # A4 Landscape
+                else:
+                    a4_w, a4_h = 595.28, 841.89  # A4 Portrait
+
+                page = output_doc.new_page(width=a4_w, height=a4_h)
+
+                # Visually fill the full A4 page, keeping aspect ratio centered
+                stretch = plan.get("image_stretch", False)
+                page.insert_image(
+                    fitz.Rect(0, 0, a4_w, a4_h),
+                    stream=data,
+                    keep_proportion=not stretch,
+                )
             except Exception as exc:
                 output_doc.close()
-                raise EngineError(f"Could not convert image '{filename}' to PDF: {exc}") from exc
+                raise EngineError(f"Could not convert image '{filename}' to A4 PDF: {exc}") from exc
             continue
 
         doc = _open_pdf(data)

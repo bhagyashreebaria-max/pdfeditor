@@ -72,6 +72,10 @@ class PrismEngineTests(unittest.TestCase):
         self.assertEqual(mime, "application/pdf")
         doc = fitz.open(stream=out_bytes, filetype="pdf")
         self.assertEqual(doc.page_count, 4)
+        # Verify the image page was created as standard A4 full page
+        img_page = doc[3]
+        self.assertAlmostEqual(img_page.rect.width, 595.28, delta=1.0)
+        self.assertAlmostEqual(img_page.rect.height, 841.89, delta=1.0)
         doc.close()
 
     def test_compose_reverse_and_nup(self):

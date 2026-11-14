@@ -1,0 +1,271 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#0d1117">
+    <meta name="description" content="Prism Document Studio — High-performance, zero-disk, composable PDF manipulation engine.">
+    <title>Prism Document Studio</title>
+    <link rel="stylesheet" href="/styles.css">
+  </head>
+  <body>
+    <div id="studio-app">
+      <!-- TOP NAVIGATION BAR -->
+      <header class="studio-header">
+        <div class="brand">
+          <div class="brand-logo">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+              <polygon points="12 2 22 8.5 22 15.5 12 22 2 15.5 2 8.5 12 2"></polygon>
+              <line x1="12" y1="22" x2="12" y2="15.5"></line>
+              <polyline points="22 8.5 12 15.5 2 8.5"></polyline>
+            </svg>
+          </div>
+          <div class="brand-text">
+            <span class="brand-name">PRISM</span>
+            <span class="brand-tag">Document Studio</span>
+          </div>
+        </div>
+
+        <div class="header-status">
+          <span class="badge badge-engine">Go + Python Streaming Engine</span>
+          <span class="badge badge-ready" id="engine-status">Engine Ready</span>
+        </div>
+      </header>
+
+      <!-- MAIN WORKBENCH -->
+      <main class="studio-workbench">
+        <!-- LEFT ACTION DECK (4 PRIMITIVES) -->
+        <aside class="action-deck">
+          <div class="deck-title">Engine Primitives</div>
+          <nav class="verb-nav">
+            <button class="verb-btn active" data-verb="compose">
+              <span class="verb-icon">⚏</span>
+              <span class="verb-meta">
+                <span class="verb-name">Compose</span>
+                <span class="verb-desc">Merge, slice, reorder, layout</span>
+              </span>
+            </button>
+            <button class="verb-btn" data-verb="transform">
+              <span class="verb-icon">⚡</span>
+              <span class="verb-meta">
+                <span class="verb-name">Transform</span>
+                <span class="verb-desc">Compress, convert, grayscale</span>
+              </span>
+            </button>
+            <button class="verb-btn" data-verb="protect">
+              <span class="verb-icon">🔒</span>
+              <span class="verb-meta">
+                <span class="verb-name">Protect</span>
+                <span class="verb-desc">Encrypt, sanitize, sign, redact</span>
+              </span>
+            </button>
+            <button class="verb-btn" data-verb="inspect">
+              <span class="verb-icon">🔍</span>
+              <span class="verb-meta">
+                <span class="verb-name">Inspect</span>
+                <span class="verb-desc">Structure, telemetry & diff</span>
+              </span>
+            </button>
+            <button class="verb-btn" data-verb="pipeline">
+              <span class="verb-icon">⚙</span>
+              <span class="verb-meta">
+                <span class="verb-name">Pipeline</span>
+                <span class="verb-desc">Atomic multi-op recipe</span>
+              </span>
+            </button>
+          </nav>
+
+          <div class="deck-footer">
+            <div class="deck-stat">
+              <span class="stat-label">Memory Footprint</span>
+              <span class="stat-val">&lt; 50 MB (In-Memory)</span>
+            </div>
+            <div class="deck-stat">
+              <span class="stat-label">Execution Architecture</span>
+              <span class="stat-val">Zero-Disk Single Pass</span>
+            </div>
+          </div>
+        </aside>
+
+        <!-- CENTER CANVAS -->
+        <section class="studio-canvas">
+          <!-- DROPZONE (EMPTY STATE) -->
+          <div id="dropzone" class="dropzone-area">
+            <input type="file" id="file-input" multiple accept=".pdf,image/*">
+            <div class="drop-content">
+              <div class="drop-icon">
+                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                  <polyline points="14 2 14 8 20 8"></polyline>
+                  <line x1="12" y1="18" x2="12" y2="12"></line>
+                  <polyline points="9 15 12 12 15 15"></polyline>
+                </svg>
+              </div>
+              <h3>Drag & drop documents here</h3>
+              <p>Supports single or multiple PDF documents & images up to 20 GiB</p>
+              <button type="button" class="btn btn-secondary" onclick="document.getElementById('file-input').click()">Browse Files</button>
+            </div>
+          </div>
+
+          <!-- DOCUMENT VIEWPORT (ACTIVE STATE) -->
+          <div id="viewport" class="viewport-area" style="display: none;">
+            <div class="viewport-toolbar">
+              <div class="file-summary">
+                <span id="loaded-filename" class="filename">document.pdf</span>
+                <span id="loaded-meta" class="filemeta">3 pages • 142 KB</span>
+              </div>
+              <div class="viewport-actions">
+                <button type="button" class="btn btn-sm" id="btn-add-files" onclick="document.getElementById('file-input').click()">+ Add Document</button>
+                <button type="button" class="btn btn-sm btn-ghost" id="btn-clear-files">Clear Workspace</button>
+              </div>
+            </div>
+
+            <!-- VISUAL PAGE STRIP -->
+            <div class="page-strip-container">
+              <div class="strip-header">
+                <span>Active Page Sequence</span>
+                <div class="strip-quick-tools">
+                  <button type="button" class="chip-btn" id="chip-rot-cw">Rotate All 90° CW</button>
+                  <button type="button" class="chip-btn" id="chip-reverse">Reverse Order</button>
+                  <button type="button" class="chip-btn" id="chip-insert-blank">+ Blank Page</button>
+                </div>
+              </div>
+              <div id="page-strip" class="page-strip">
+                <!-- Dynamically populated page cards -->
+              </div>
+            </div>
+
+            <!-- RESULT LOG / PREVIEW -->
+            <div id="inspect-output" class="telemetry-panel" style="display: none;">
+              <div class="telemetry-title">Document Intelligence Report</div>
+              <pre id="inspect-content" class="telemetry-code"></pre>
+            </div>
+          </div>
+        </section>
+
+        <!-- RIGHT CONFIGURATION DOCK -->
+        <aside class="config-dock">
+          <div class="dock-header">
+            <h4 id="verb-panel-title">Compose Configuration</h4>
+            <span class="dock-subtitle">Fine-tune operation parameters</span>
+          </div>
+
+          <div class="dock-body">
+            <!-- PANEL: COMPOSE -->
+            <div id="panel-compose" class="verb-panel active">
+              <div class="control-group">
+                <label>Page Selection Expression</label>
+                <input type="text" id="compose-pages" placeholder="e.g. 1-3, 5, 8 (or leave empty for all)">
+                <span class="help-text">Comma-separated page numbers or ranges.</span>
+              </div>
+              <div class="control-group">
+                <label>Standard Page Layout</label>
+                <select id="compose-nup">
+                  <option value="1">1 Page per Sheet (Standard)</option>
+                  <option value="2">2 Pages per Sheet (N-Up Side-by-Side)</option>
+                </select>
+              </div>
+              <div class="control-group">
+                <label>Target Page Size</label>
+                <select id="compose-target-size">
+                  <option value="">Maintain Original Dimensions</option>
+                  <option value="a4">Standard A4 (595 x 842 pt)</option>
+                  <option value="letter">US Letter (612 x 792 pt)</option>
+                  <option value="legal">US Legal (612 x 1008 pt)</option>
+                </select>
+              </div>
+            </div>
+
+            <!-- PANEL: TRANSFORM -->
+            <div id="panel-transform" class="verb-panel">
+              <div class="control-group">
+                <label>Transformation Mode</label>
+                <select id="transform-mode">
+                  <option value="compress">Intelligent Stream Compression</option>
+                  <option value="grayscale">Convert Color Space to Grayscale</option>
+                  <option value="to_images">Extract Pages as Images (PNG/JPG)</option>
+                  <option value="to_text">Extract Structured Text</option>
+                  <option value="to_markdown">Export as Markdown Document</option>
+                  <option value="linearize">Optimize for Fast Web View</option>
+                </select>
+              </div>
+              <div class="control-group" id="grp-compress-level">
+                <label>Compression Preset</label>
+                <select id="compress-level">
+                  <option value="medium">Balanced (Image clean & garbage collect)</option>
+                  <option value="high">High Ratio (Aggressive downsample & recompress)</option>
+                  <option value="lossless">Lossless (Syntax tree compression only)</option>
+                </select>
+              </div>
+              <div class="control-group" id="grp-image-format" style="display: none;">
+                <label>Target Image Format</label>
+                <select id="transform-img-fmt">
+                  <option value="png">PNG (Lossless)</option>
+                  <option value="jpeg">JPEG (Compressed)</option>
+                </select>
+              </div>
+            </div>
+
+            <!-- PANEL: PROTECT -->
+            <div id="panel-protect" class="verb-panel">
+              <div class="control-group">
+                <label>Security Operation</label>
+                <select id="protect-mode">
+                  <option value="encrypt">AES-256 Document Encryption</option>
+                  <option value="decrypt">Remove Password Protection</option>
+                  <option value="sanitize">Scrub Metadata, Annotations & Tags</option>
+                  <option value="redact">Permanent Content Redaction</option>
+                  <option value="sign">Cryptographic PKCS#12 Signature</option>
+                </select>
+              </div>
+              <div class="control-group" id="grp-password">
+                <label>Document Password</label>
+                <input type="password" id="protect-password" placeholder="Enter password...">
+              </div>
+              <div class="control-group" id="grp-redact-terms" style="display: none;">
+                <label>Keywords / Phrases to Redact</label>
+                <input type="text" id="redact-terms" placeholder="Confidential, Internal, Name...">
+                <span class="help-text">Permanently blacks out matching text on all pages.</span>
+              </div>
+              <div class="control-group" id="grp-cert-file" style="display: none;">
+                <label>PKCS#12 Certificate (.p12/.pfx)</label>
+                <input type="file" id="cert-input" accept=".p12,.pfx">
+              </div>
+            </div>
+
+            <!-- PANEL: INSPECT -->
+            <div id="panel-inspect" class="verb-panel">
+              <p class="panel-desc">Runs in-depth structural inspection, font inventory, embedded asset checks, and comparative diff analysis.</p>
+              <div class="control-group">
+                <label>Second Document for Diff (Optional)</label>
+                <input type="file" id="diff-file-input" accept=".pdf">
+              </div>
+            </div>
+
+            <!-- PANEL: PIPELINE -->
+            <div id="panel-pipeline" class="verb-panel">
+              <p class="panel-desc">Chain multiple operations together in a single atomic pass with zero disk intermediate writes.</p>
+              <div class="pipeline-steps" id="pipeline-steps-list">
+                <div class="recipe-step">1. Compose (Reorder & Arrange)</div>
+                <div class="recipe-step">2. Transform (Compress Balanced)</div>
+                <div class="recipe-step">3. Protect (Sanitize Metadata)</div>
+              </div>
+              <button type="button" class="btn btn-sm btn-outline" id="btn-edit-recipe">Configure Custom Recipe</button>
+            </div>
+          </div>
+
+          <!-- EXECUTE ACTION BAR -->
+          <div class="dock-footer">
+            <button type="button" class="btn btn-primary btn-block" id="btn-execute">
+              <span id="btn-exec-label">Run & Export Document</span>
+              <span class="spinner" id="exec-spinner" style="display: none;"></span>
+            </button>
+            <div id="execution-msg" class="exec-status"></div>
+          </div>
+        </aside>
+      </main>
+    </div>
+
+    <script src="/app.js"></script>
+  </body>
+</html>
